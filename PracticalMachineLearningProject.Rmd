@@ -195,22 +195,6 @@ barplot(pred.dist, col=mycolors, xlab ="Outcome: How the exercise was done",
 
 ```
 
----
-
-##### Feature plot of the training dataset variables vs the Outcome variable: "classe"
-
----
-
-```{r}
-
-featurePlot(x=training[,2-6],
-            y=training$classe,
-            plot=pairs)
-
-
-```
-
-
 
 ---
 
