@@ -1,0 +1,230 @@
+---
+title: "Practical Machine Learning - Project"
+date: "Tuesday, January 20, 2015"
+output: html_document
+---
+
+##### Background:
+
+This background was copied from the Coursera website - Machine Learning Write up Project.
+
+Using devices such as Jawbone Up, Nike FuelBand, and Fitbit it is now possible to collect a large amount of data about personal activity relatively inexpensively. These type of devices are part of the quantified self movement - a group of enthusiasts who take measurements about themselves regularly to improve their health, to find patterns in their behavior, or because they are tech geeks. One thing that people regularly do is quantify how much of a particular activity they do, but they rarely quantify how well they do it. 
+
+##### Goal of the project:
+
+ Predict the manner in which the 6 participants did the exercise. The outcome will the "classe" variable in the training dataset. The model and the predictions will be based on the data from accelerometers on the "belt"", "forearm"", "arm"", and "dumbell" of thhose 6 participants. They were asked to perform barbell lifts correctly and incorrectly in 5 different ways (A, B, C, D or E). 
+
+The model will be used to predict how they did the exersice using 20 observations in the testing dataset.
+
+More information is available from the website here: http://groupware.les.inf.puc-rio.br/har (see the section on the Weight Lifting Exercise Dataset). 
+
+#### Data Processing
+
+##### Load the training and testing datasets:
+
+```{r}
+# Read training CSV into R
+training <- read.csv(file="pml-training.csv", header=TRUE, sep=",")
+
+# Read testing CSV into R
+testing <- read.csv(file="pml-testing.csv", header=TRUE, sep=",")
+
+```
+
+##### Brief exploratory analysis of the original dataset: training and testing
+
+```{r}
+# See diminsion of the datasets
+
+dim(training)
+dim(testing)
+
+```
+
+---
+
+##### Features/variables selection to build the model (Rationale).
+
+After running some tests with variable selection functions, it was determined to use function "regsubsets()"" - Code not included in this document - to decide what features/variables would give the best model for this project. For the training dataset, 14 variables shown below were selected and 13 variables for the testing dataset. importance(modelFit, type=1) function was run at the end of the report to show that all of these columns would help to get a more accurate prediction.
+
+---
+
+```{r}
+
+# Explanation to select this variables...
+
+# ----------------------------------------------
+
+cols = c("user_name",
+        "accel_belt_x",
+        "accel_belt_y",
+        "accel_belt_z",
+        "accel_arm_x",
+        "accel_arm_y",
+        "accel_arm_z",
+        "accel_dumbbell_x",
+        "accel_dumbbell_y",
+        "accel_dumbbell_z",
+        "accel_forearm_x",
+        "accel_forearm_y",
+        "accel_forearm_z",
+        "classe")
+
+cols1 = c("user_name",
+         "accel_belt_x",
+         "accel_belt_y",
+         "accel_belt_z",
+         "accel_arm_x",
+         "accel_arm_y",
+         "accel_arm_z",
+         "accel_dumbbell_x",
+         "accel_dumbbell_y",
+         "accel_dumbbell_z",
+         "accel_forearm_x",
+         "accel_forearm_y",
+         "accel_forearm_z")
+
+# Use vectors cols and cols1 to create a new datasets with
+# the relevant columns only...
+# -----------------------------------------------------------
+training = subset(training, select=c(cols))
+testing = subset(testing, select=c(cols1))
+
+# See dimension of datasets AFTER removing unwanted variables
+dim(training)
+dim(testing)
+
+```
+
+
+```{r, echo=FALSE, warning=FALSE}
+# Load caret and randomForest library - It will be used for modeling, predicting and plotting
+library(caret)
+require(randomForest) 
+```
+
+
+##### Split the training dataset in 2 sets: train and test.validate
+
+```{r}
+
+inTrain = createDataPartition(y=training$classe,
+                              p=0.7, list=FALSE)
+
+train.new = training[inTrain,]
+test.validate = training[-inTrain,]
+
+# See new dimemsion of the 2 datasets:
+
+dim(train.new); 
+dim(test.validate)
+
+```
+
+
+
+#### Build (fit) the model with the new training dataset
+
+##### Rationale to select the Random Forest learning method.
+
+It was decided to use Random Forest to build the model, since it is considered one of the best "black-box" supervised learning methods (http://www.r-bloggers.com/random-forest-variable-importance/). It is also very good for non-linear regression models and classification problem.
+Since the project is a classification problem, Random Forest took the first position for this assignment. This wikipedia.org was also reviewed before selecting this approach: http://en.wikipedia.org/wiki/Random_forest
+
+
+```{r}
+
+set.seed(1225)
+modelFit = randomForest(classe ~ ., data=train.new, keep.forest=TRUE, importance=TRUE)
+
+```
+
+##### Validate the model using the test.validate dataset
+
+
+```{r}
+
+pred.test.validate = predict(modelFit, newdata=test.validate)
+
+```
+
+##### The confusion Matrix below shows that when the model is tested with new sample data, the expected accuracy to predict the outcome is ~95%. The Out of sample Error is ~ 5%
+
+```{r}
+confusionMatrix(pred.test.validate, test.validate$classe)
+
+```
+
+
+#### Results
+
+---
+
+##### Predictions with the "original" testing dataset (used only once)
+
+```{r}
+
+# ---------------------------------------------------------------------
+# After building and "training" the model with the "training" dataset,
+# We will now use the "testing" (or unknown data) dataset to predict the outcome.
+# ---------------------------------------------------------------------
+
+predictions = predict(modelFit, newdata=testing)
+# See results of the predictions
+
+predictions
+```
+
+##### Note about the results of these predictions:
+
+ The results of the predictions shown abouve were tested in the Coursera
+ Project Submission section with a successfull rate of 19/20 = 95%.
+ That is 95% of the time the outcome was correctly predicted.
+
+---
+
+##### Plot the distribution of the final predictions
+
+```{r}
+library(ggplot2)
+
+pred.dist = table(predictions)
+
+mycolors = c("red","blue","green","orange","yellow")
+barplot(pred.dist, col=mycolors, xlab ="Outcome: How the exercise was done",
+        ylab="Outcome Frequency", main="Plot of the Final Predictions - (with testing dataset)")
+
+```
+
+---
+
+##### Feature plot of the training dataset variables vs the Outcome variable: "classe"
+
+---
+
+```{r}
+
+featurePlot(x=training[,2-6],
+            y=training$classe,
+            plot=pairs)
+
+
+```
+
+
+
+---
+
+##### See Model Importance metrics - Used to confirm the variable selection was good enough for build the model.
+
+The higher the number, the more important the variable is to reduce the error when makding the predictions
+
+```{r, warnings=FALSE}
+
+importance(modelFit, type=1)
+```
+
+---
+
+
+
+
